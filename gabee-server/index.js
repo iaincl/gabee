@@ -23,3 +23,9 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`GABEE server running on port ${PORT}`);
 });
+
+// Add this after your existing require statements at the top
+const authRoutes = require("./routes/auth");
+
+// Add this after app.use(express.json())
+app.use("/api/auth", authRoutes);
