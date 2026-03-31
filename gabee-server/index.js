@@ -3,6 +3,8 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const authRoutes = require("./routes/auth");
 const brewRoutes = require("./routes/brews");
+const drinkRoutes = require("./routes/drinks");
+
 
 // Loads your .env file so process.env.PORT etc work
 dotenv.config();
@@ -18,6 +20,7 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/brews", brewRoutes);
+app.use("/api/drinks", drinkRoutes);
 
 // Test route
 app.get("/", (req, res) => {
