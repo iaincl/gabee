@@ -1,7 +1,259 @@
-export default function Dashboard() {
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { getBrews, getDrinks } from "../api";
+
+const LIMIT = 400;
+const CORTADO = "#7C3D00";
+function IcedCup({ pct }) {
+    const CUP_TOP = 32, CUP_BOTTOM = 176, CH = CUP_BOTTOM - CUP_TOP;
+    const liquidY = Math.round(CUP_BOTTOM - Math.min(pct, 1) * CH);
+    const showIce = pct > 0.08;
+    const liquidColor = pct >= 1 ? "#7F1D1D" : pct >= 0.75 ? "#374151" : "#111";
+  
     return (
-      <div style={{ padding: 40, fontFamily: "'DotGothic16', monospace" }}>
-        Dashboard coming soon ☕
+      <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+        <svg width="160" height="190" viewBox="0 0 160 190" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <clipPath id="cupClip">
+              <path d="M28,32 L22,176 Q22,184 30,184 L110,184 Q118,184 118,176 L112,32 Z"/>
+            </clipPath>
+          </defs>
+          <path d="M28,32 L22,176 Q22,184 30,184 L110,184 Q118,184 118,176 L112,32 Z" fill="#fff"/>
+          <g clipPath="url(#cupClip)">
+            <rect x="0" y={liquidY} width="130" height={184 - liquidY} fill={liquidColor} opacity="0.9"/>
+            {showIce && <>
+              <rect x="26" y={liquidY + 4} width="22" height="22" rx="3" fill="white" opacity="0.5"/>
+              <rect x="55" y={liquidY + 10} width="18" height="18" rx="3" fill="white" opacity="0.4"/>
+              <rect x="82" y={liquidY + 2} width="20" height="20" rx="3" fill="white" opacity="0.45"/>
+              <rect x="32" y={liquidY + 30} width="16" height="16" rx="3" fill="white" opacity="0.38"/>
+              <rect x="68" y={liquidY + 28} width="20" height="20" rx="3" fill="white" opacity="0.42"/>
+            </>}
+          </g>
+          <path d="M28,32 L22,176 Q22,184 30,184 L110,184 Q118,184 118,176 L112,32 Z" fill="none" stroke="#111" strokeWidth="2"/>
+          <ellipse cx="70" cy="32" rx="42" ry="6" fill="#F3F4F6" stroke="#111" strokeWidth="1.5"/>
+          {/* Straw — starts just above the lid */}
+          <rect x="78" y="10" width="6" height="100" rx="3" fill={CORTADO} opacity="0.85"/>
+          {/* Handle */}
+          <path d="M118,72 Q142,72 142,104 Q142,132 118,132" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round"/>
+          <g fill="#111" opacity="0.07">
+            <ellipse cx="26" cy="90" rx="2" ry="3"/>
+            <ellipse cx="116" cy="112" rx="1.5" ry="2.5"/>
+            <ellipse cx="24" cy="135" rx="1.5" ry="2.5"/>
+          </g>
+        </svg>
       </div>
     );
   }
+
+function Navbar({ onLogout }) {
+  const navigate = useNavigate();
+  return (
+    <nav style={s.navbar}>
+      <div style={s.logo}>GA<span style={{ color: CORTADO }}>B</span>EE</div>
+      <div style={s.navLinks}>
+        <span style={{ ...s.navLink, ...s.navActive }}>DASHBOARD</span>
+        <span style={s.navLink} onClick={() => navigate("/log-brew")}>LOG BREW</span>
+        <span style={s.navLink} onClick={() => navigate("/log-drink")}>LOG DRINK</span>
+        <span style={s.navLink} onClick={() => navigate("/history")}>HISTORY</span>
+      </div>
+      <span style={s.navTag} onClick={onLogout}>LOGOUT</span>
+    </nav>
+  );
+}
+
+function getStatus(pct) {
+  if (pct === 0) return { msg: "NO CAFFEINE YET — TIME FOR A SHOT", bg: "#F3F4F6", color: "#6B7280" };
+  if (pct < 0.25) return { msg: "JUST GETTING STARTED", bg: "#F0FDF4", color: "#15803D" };
+  if (pct < 0.5) return { msg: "LOOKING GOOD — ROOM FOR MORE", bg: "#F0FDF4", color: "#15803D" };
+  if (pct < 0.75) return { msg: "HALF WAY — SIP MINDFULLY", bg: "#FEF3C7", color: "#D97706" };
+  if (pct < 1) return { msg: "ALMOST AT YOUR LIMIT", bg: "#FEF3C7", color: "#D97706" };
+  return { msg: "DAILY LIMIT REACHED", bg: "#FEE2E2", color: "#DC2626" };
+}
+
+export default function Dashboard() {
+  const [brews, setBrews] = useState([]);
+  const [drinks, setDrinks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [brewRes, drinkRes] = await Promise.all([getBrews(), getDrinks()]);
+        setBrews(brewRes.data);
+        setDrinks(drinkRes.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  // Today's entries only
+  const today = new Date().toDateString();
+  const todayBrews = brews.filter(b => new Date(b.brewed_at).toDateString() === today);
+  const todayDrinks = drinks.filter(d => new Date(d.drank_at).toDateString() === today);
+
+  const totalCaffeine = [
+    ...todayBrews.map(b => b.caffeine_mg || 0),
+    ...todayDrinks.map(d => d.caffeine_mg || 0),
+  ].reduce((a, b) => a + b, 0);
+
+  const pct = totalCaffeine / LIMIT;
+  const status = getStatus(pct);
+  const remaining = Math.max(0, LIMIT - totalCaffeine);
+  const allToday = [
+    ...todayBrews.map(b => ({ ...b, type: "brew" })),
+    ...todayDrinks.map(d => ({ ...d, type: "drink" })),
+  ].sort((a, b) => new Date(b.brewed_at || b.drank_at) - new Date(a.brewed_at || a.drank_at));
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "GOOD MORNING";
+    if (h < 17) return "GOOD AFTERNOON";
+    return "GOOD EVENING";
+  };
+
+  if (loading) return (
+    <div style={s.loadWrap}>
+      <div style={s.loadText}>BREWING...</div>
+    </div>
+  );
+
+  return (
+    <div style={s.page}>
+      <Navbar onLogout={handleLogout} />
+
+      {/* Ticker */}
+      <div style={s.ticker}>
+        <div style={s.tickerTrack}>
+          {[1,2].map(i => (
+            <span key={i} style={s.tickerInner}>
+              GABEE — YOUR COFFEE DIARY &nbsp;•&nbsp; TODAY: {Math.round(totalCaffeine)}MG CAFFEINE &nbsp;•&nbsp; {allToday.length} DRINKS LOGGED &nbsp;•&nbsp; {Math.round(remaining)}MG REMAINING &nbsp;•&nbsp;
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Main */}
+      <div style={s.main}>
+        <div style={s.greeting}>{greeting()}</div>
+
+        <IcedCup pct={pct} />
+
+        <div style={s.mgNumber}>{Math.round(totalCaffeine)}</div>
+        <div style={s.mgSub}>MG CAFFEINE · {LIMIT}MG DAILY LIMIT</div>
+        <div style={{ ...s.pill, background: status.bg, color: status.color }}>
+          {status.msg}
+        </div>
+
+        {/* Metrics */}
+        <div style={s.metrics}>
+          <div style={s.metric}>
+            <div style={s.metricVal}>{allToday.length}</div>
+            <div style={s.metricLbl}>DRINKS TODAY</div>
+          </div>
+          <div style={{ ...s.metric, borderLeft: "1px solid #EBEBEB", borderRight: "1px solid #EBEBEB" }}>
+            <div style={s.metricVal}>{Math.round(remaining)}</div>
+            <div style={s.metricLbl}>MG REMAINING</div>
+          </div>
+          <div style={s.metric}>
+            <div style={s.metricVal}>{Math.round(pct * 100)}%</div>
+            <div style={s.metricLbl}>LIMIT USED</div>
+          </div>
+        </div>
+
+        {/* Today's log */}
+        {allToday.length > 0 && (
+          <>
+            <div style={s.sectionTitle}>TODAY'S LOG</div>
+            <div style={s.cards}>
+              {allToday.map((entry, i) => (
+                <div key={i} style={s.card}>
+                  <div style={s.cardBean}>
+                    {entry.type === "brew" ? entry.bean_name || "Home brew" : entry.drink_type?.replace("_", " ").toUpperCase()}
+                  </div>
+                  <div style={s.cardTime}>
+                    {new Date(entry.brewed_at || entry.drank_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </div>
+                  <div style={{
+                    ...s.badge,
+                    background: entry.type === "brew" ? "#FDF4EC" : "#F3F4F6",
+                    color: entry.type === "brew" ? CORTADO : "#6B7280",
+                  }}>
+                    {entry.type === "brew" ? entry.ratioStatus?.toUpperCase().replace("_", " ") || "HOME BREW" : "OUTSIDE DRINK"}
+                  </div>
+                  <div style={s.cardStats}>
+                    {entry.type === "brew" ? (
+                      <>
+                        <span style={s.stat}><b>{entry.dose_in}g</b> in</span>
+                        <span style={s.stat}><b>{entry.yield_out}g</b> out</span>
+                        <span style={s.stat}><b>{entry.brew_time}s</b></span>
+                      </>
+                    ) : (
+                      <span style={s.stat}><b>{entry.place_name}</b></span>
+                    )}
+                    <span style={s.stat}><b>{Math.round(entry.caffeine_mg)}mg</b></span>
+                  </div>
+                  {entry.rating && (
+                    <div style={{ color: CORTADO, fontSize: 12, marginTop: 6 }}>
+                      {"★".repeat(entry.rating)}{"☆".repeat(5 - entry.rating)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {allToday.length === 0 && (
+          <div style={s.empty}>
+            No drinks logged today yet.{" "}
+            <span style={{ color: CORTADO, cursor: "pointer" }} onClick={() => navigate("/log-brew")}>
+              Log your first shot →
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+const s = {
+    page: { minHeight: "100vh", background: "#fff" },
+    loadWrap: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" },
+    loadText: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 14, color: "#555", letterSpacing: "0.1em" },
+    navbar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 32px", borderBottom: "1px solid #EBEBEB" },
+    logo: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, fontSize: 22, color: "#111" },
+    navLinks: { display: "flex", gap: 28 },
+    navLink: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 11, color: "#555", letterSpacing: "0.06em", cursor: "pointer" },
+    navActive: { color: "#111", textDecoration: "underline", textUnderlineOffset: 4 },
+    navTag: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 11, background: "#111", color: "#fff", padding: "4px 12px", borderRadius: 2, cursor: "pointer" },
+    ticker: { background: "#111", overflow: "hidden", whiteSpace: "nowrap", padding: "8px 0" },
+    tickerTrack: { display: "inline-block", animation: "ticker 20s linear infinite" },
+    tickerInner: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 11, color: "#fff", letterSpacing: "0.08em", paddingRight: 32 },
+    main: { display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 32px 48px" },
+    greeting: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 12, color: "#333", letterSpacing: "0.1em", marginBottom: 20 },
+    mgNumber: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, fontSize: 64, color: "#111", letterSpacing: "-0.02em", marginTop: 16, lineHeight: 1 },
+    mgSub: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 11, color: "#444", letterSpacing: "0.08em", marginTop: 8, marginBottom: 12 },
+    pill: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 11, padding: "6px 18px", borderRadius: 2, letterSpacing: "0.06em", marginBottom: 32 },
+    metrics: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", width: "100%", maxWidth: 420, border: "1px solid #EBEBEB", borderRadius: 8, overflow: "hidden", marginBottom: 32 },
+    metric: { padding: "16px 20px", textAlign: "center", background: "#fff" },
+    metricVal: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, fontSize: 28, color: "#111" },
+    metricLbl: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 10, color: "#444", letterSpacing: "0.08em", marginTop: 4 },
+    sectionTitle: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 11, color: "#444", letterSpacing: "0.1em", width: "100%", maxWidth: 480, marginBottom: 12 },
+    cards: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, width: "100%", maxWidth: 480 },
+    card: { border: "1px solid #EBEBEB", borderRadius: 8, padding: "14px 16px", background: "#fff" },
+    cardBean: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, fontSize: 12, color: "#111", marginBottom: 2 },
+    cardTime: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 400, fontSize: 10, color: "#888", marginBottom: 8 },
+    badge: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 9, padding: "2px 8px", borderRadius: 2, display: "inline-block", marginBottom: 8, letterSpacing: "0.04em" },
+    cardStats: { display: "flex", gap: 10, flexWrap: "wrap" },
+    stat: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 400, fontSize: 10, color: "#555" },
+    empty: { fontFamily: "'IBM Plex Mono', monospace", fontWeight: 600, fontSize: 12, color: "#444", letterSpacing: "0.06em", marginTop: 16 },
+  };
