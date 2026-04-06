@@ -15,10 +15,11 @@ const app = express();
 app.use(cors({
     origin: [
       "http://localhost:5173",
+      "https://gabee-client.vercel.app",
       /\.vercel\.app$/,
     ]
   }));
-  
+
 // Lets the server understand JSON request bodies
 app.use(express.json());
 
