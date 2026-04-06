@@ -39,7 +39,7 @@ function IcedCup({ pct }) {
       return () => clearInterval(timer);
     }, [pct]);
   
-    const cups = getCups(displayPct);
+    const cups = getCups(pct);
   
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
