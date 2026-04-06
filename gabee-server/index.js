@@ -12,8 +12,13 @@ dotenv.config();
 const app = express();
 
 // Lets your React app (running on port 5173) talk to this server
-app.use(cors({ origin: "http://localhost:5173" }));
-
+app.use(cors({
+    origin: [
+      "http://localhost:5173",
+      /\.vercel\.app$/,
+    ]
+  }));
+  
 // Lets the server understand JSON request bodies
 app.use(express.json());
 
