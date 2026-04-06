@@ -1,3 +1,5 @@
 node_modules/
 .env
 gabee.db
+gabee.db-shm
+gabee.db-wal
