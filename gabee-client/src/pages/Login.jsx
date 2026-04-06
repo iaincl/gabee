@@ -17,7 +17,7 @@ export default function Login() {
       const fn = isRegister ? register : login;
       const res = await fn(email, password);
       localStorage.setItem("token", res.data.token);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.error || "Something went wrong");
     } finally {
