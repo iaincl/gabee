@@ -40,7 +40,7 @@ function Navbar() {
     <nav style={s.navbar}>
       <div style={s.logo}>GA<span style={{ color: CORTADO }}>B</span>EE</div>
       <div style={s.navLinks}>
-        <span style={s.navLink} onClick={() => navigate("/")}>DASHBOARD</span>
+        <span style={s.navLink} onClick={() => navigate("/dashboard")}>DASHBOARD</span>
         <span style={s.navLink} onClick={() => navigate("/log-brew")}>LOG BREW</span>
         <span style={{ ...s.navLink, ...s.navActive }}>LOG DRINK</span>
         <span style={s.navLink} onClick={() => navigate("/history")}>HISTORY</span>
@@ -75,6 +75,7 @@ export default function LogDrink() {
         notes,
       });
       setResult(res.data);
+      setTimeout(() => navigate("/dashboard", { state: { refresh: true } }), 1000);
     } catch (err) {
       setError(err.response?.data?.error || "Something went wrong");
     } finally {
@@ -94,8 +95,10 @@ export default function LogDrink() {
           <div style={s.successStat}>~{result.caffeine_mg}mg caffeine added</div>
           <div style={s.successMsg}>{result.message}</div>
           <div style={s.successBtns}>
-            <button style={s.btnPrimary} onClick={() => navigate("/")}>Back to dashboard</button>
-            <button style={s.btnSecondary} onClick={() => {
+        <button style={s.btnPrimary} onClick={() => navigate("/dashboard", { state: { refresh: true } })}>
+        Back to dashboard
+        </button>            
+        <button style={s.btnSecondary} onClick={() => {
               setResult(null); setSelectedDrink(null);
               setSize("medium"); setPlace(""); setNotes("");
             }}>Log another</button>

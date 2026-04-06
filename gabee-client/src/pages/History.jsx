@@ -10,7 +10,7 @@ function Navbar() {
     <nav style={s.navbar}>
       <div style={s.logo}>GA<span style={{ color: CORTADO }}>B</span>EE</div>
       <div style={s.navLinks}>
-        <span style={s.navLink} onClick={() => navigate("/")}>DASHBOARD</span>
+        <span style={s.navLink} onClick={() => navigate("/dashboard")}>DASHBOARD</span>
         <span style={s.navLink} onClick={() => navigate("/log-brew")}>LOG BREW</span>
         <span style={s.navLink} onClick={() => navigate("/log-drink")}>LOG DRINK</span>
         <span style={{ ...s.navLink, ...s.navActive }}>HISTORY</span>
@@ -170,7 +170,7 @@ export default function History() {
                           )}
                         </div>
                         <div style={s.cardTime}>
-                          {new Date(entry.brewed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(entry.brewed_at.replace(" ", "T") + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </div>
                       </div>
 
@@ -238,8 +238,7 @@ export default function History() {
                           )}
                         </div>
                         <div style={s.cardTime}>
-                          {new Date(entry.drank_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
+                        {new Date(entry.drank_at.replace(" ", "T") + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}                        </div>
                       </div>
 
                       <div style={s.cardBadge}>

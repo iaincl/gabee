@@ -4,64 +4,101 @@ import { getBrews, getDrinks } from "../api";
 
 const LIMIT = 400;
 const CORTADO = "#7C3D00";
-
 function IcedCup({ pct }) {
-  const [displayPct, setDisplayPct] = useState(0);
-  const CUP_TOP = 32, CUP_BOTTOM = 176, CH = CUP_BOTTOM - CUP_TOP;
-  const liquidY = Math.round(CUP_BOTTOM - Math.min(displayPct, 1) * CH);
-  const showIce = displayPct > 0.08;
-  const liquidColor = displayPct >= 1 ? "#7F1D1D" : displayPct >= 0.75 ? "#374151" : "#111";
-
-  useEffect(() => {
-    if (pct === 0) { setDisplayPct(0); return; }
-    const steps = 60;
-    const increment = pct / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= pct) {
-        setDisplayPct(pct);
-        clearInterval(timer);
-      } else {
-        setDisplayPct(current);
-      }
-    }, 1200 / steps);
-    return () => clearInterval(timer);
-  }, [pct]);
-
-  return (
-    <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-      <svg width="160" height="190" viewBox="0 0 160 190" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <clipPath id="cupClip">
-            <path d="M28,32 L22,176 Q22,184 30,184 L110,184 Q118,184 118,176 L112,32 Z"/>
-          </clipPath>
-        </defs>
-        <path d="M28,32 L22,176 Q22,184 30,184 L110,184 Q118,184 118,176 L112,32 Z" fill="#fff"/>
-        <g clipPath="url(#cupClip)">
-          <rect x="0" y={liquidY} width="130" height={184 - liquidY} fill={liquidColor} opacity="0.9"/>
-          {showIce && <>
-            <rect x="26" y={liquidY + 4} width="22" height="22" rx="3" fill="white" opacity="0.5"/>
-            <rect x="55" y={liquidY + 10} width="18" height="18" rx="3" fill="white" opacity="0.4"/>
-            <rect x="82" y={liquidY + 2} width="20" height="20" rx="3" fill="white" opacity="0.45"/>
-            <rect x="32" y={liquidY + 30} width="16" height="16" rx="3" fill="white" opacity="0.38"/>
-            <rect x="68" y={liquidY + 28} width="20" height="20" rx="3" fill="white" opacity="0.42"/>
-          </>}
-        </g>
-        <path d="M28,32 L22,176 Q22,184 30,184 L110,184 Q118,184 118,176 L112,32 Z" fill="none" stroke="#111" strokeWidth="2"/>
-        <ellipse cx="70" cy="32" rx="42" ry="6" fill="#F3F4F6" stroke="#111" strokeWidth="1.5"/>
-        <rect x="78" y="10" width="6" height="100" rx="3" fill={CORTADO} opacity="0.85"/>
-        <path d="M118,72 Q142,72 142,104 Q142,132 118,132" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round"/>
-        <g fill="#111" opacity="0.07">
-          <ellipse cx="26" cy="90" rx="2" ry="3"/>
-          <ellipse cx="116" cy="112" rx="1.5" ry="2.5"/>
-          <ellipse cx="24" cy="135" rx="1.5" ry="2.5"/>
-        </g>
-      </svg>
-    </div>
-  );
-}
-
+    const [displayPct, setDisplayPct] = useState(0);
+    const CUP_TOP = 32, CUP_BOTTOM = 188, CH = CUP_BOTTOM - CUP_TOP;
+    const liquidY = Math.round(CUP_BOTTOM - Math.min(displayPct, 1) * CH);
+    const liquidH = Math.round(Math.min(displayPct, 1) * CH);
+    const showIce = displayPct > 0.15;
+    const showFoam = displayPct > 0.05;
+  
+    const liquidColor = displayPct >= 1 ? "#3B0000"
+      : displayPct >= 0.75 ? "#4A1500" : "#5C2E00";
+  
+    const getCups = (pct) => {
+      const mg = Math.round(pct * 400);
+      const cups = mg / 95;
+      if (mg === 0) return { label: "0 cups", sub: "no caffeine yet" };
+      if (cups < 1.5) return { label: "1 cup", sub: `~${mg}mg` };
+      if (cups < 2.5) return { label: "2 cups", sub: `~${mg}mg` };
+      if (cups < 3.5) return { label: "3 cups", sub: `~${mg}mg` };
+      if (cups < 4.5) return { label: "4 cups", sub: `~${mg}mg` };
+      return { label: "4+ cups", sub: `~${mg}mg — limit!` };
+    };
+  
+    useEffect(() => {
+      if (pct === 0) { setDisplayPct(0); return; }
+      const steps = 80;
+      let step = 0;
+      const timer = setInterval(() => {
+        step++;
+        const eased = 1 - Math.pow(1 - step / steps, 3);
+        setDisplayPct(eased * pct);
+        if (step >= steps) { setDisplayPct(pct); clearInterval(timer); }
+      }, 1000 / steps);
+      return () => clearInterval(timer);
+    }, [pct]);
+  
+    const cups = getCups(displayPct);
+  
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+        <svg width="180" height="200" viewBox="0 0 180 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <clipPath id="cupClip">
+              <path d="M44,32 L38,180 Q38,188 46,188 L126,188 Q134,188 134,180 L128,32 Z"/>
+            </clipPath>
+          </defs>
+          <path d="M44,32 L38,180 Q38,188 46,188 L126,188 Q134,188 134,180 L128,32 Z" fill="#fff"/>
+          <g clipPath="url(#cupClip)">
+            <rect x="16" y={liquidY} width="130" height={liquidH} fill={liquidColor}/>
+            {showFoam && (
+              <rect x="20" y={liquidY - 3} width="120" height="6" rx="3" fill="#A0522D" opacity="0.65"/>
+            )}
+            {showIce && <>
+              <rect x="42" y={liquidY + 4} width="22" height="22" rx="3" fill="white" opacity="0.45"/>
+              <rect x="71" y={liquidY + 10} width="18" height="18" rx="3" fill="white" opacity="0.35"/>
+              <rect x="98" y={liquidY + 2} width="20" height="20" rx="3" fill="white" opacity="0.4"/>
+              <rect x="48" y={liquidY + 28} width="16" height="16" rx="3" fill="white" opacity="0.3"/>
+              <rect x="84" y={liquidY + 26} width="20" height="20" rx="3" fill="white" opacity="0.38"/>
+            </>}
+          </g>
+          <path d="M44,32 L38,180 Q38,188 46,188 L126,188 Q134,188 134,180 L128,32 Z" fill="none" stroke="#111" strokeWidth="2"/>
+          <ellipse cx="86" cy="32" rx="42" ry="6" fill="#F3F4F6" stroke="#111" strokeWidth="1.5"/>
+          <rect x="94" y="10" width="6" height="100" rx="3" fill={CORTADO} opacity="0.85"/>
+          <path d="M134,72 Q158,72 158,110 Q158,140 134,140" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round"/>
+          <g fill="#111" opacity="0.07">
+            <ellipse cx="42" cy="95" rx="2" ry="3.5"/>
+            <ellipse cx="132" cy="118" rx="1.5" ry="2.5"/>
+            <ellipse cx="40" cy="140" rx="1.5" ry="2.5"/>
+          </g>
+        </svg>
+  
+        {/* Cup counter label */}
+        <div style={{
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontWeight: 700,
+          fontSize: 13,
+          color: displayPct >= 1 ? "#DC2626" : displayPct >= 0.75 ? "#D97706" : "#111",
+          marginTop: 8,
+          letterSpacing: "0.04em",
+        }}>
+          {cups.label}
+        </div>
+        <div style={{
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontWeight: 600,
+          fontSize: 10,
+          color: "#999",
+          letterSpacing: "0.06em",
+          marginTop: 2,
+        }}>
+          {cups.sub}
+        </div>
+      </div>
+    );
+  }
+  
 function Navbar({ onLogout }) {
   const navigate = useNavigate();
   return (

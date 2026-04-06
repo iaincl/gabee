@@ -10,7 +10,7 @@ function Navbar() {
     <nav style={s.navbar}>
       <div style={s.logo}>GA<span style={{ color: CORTADO }}>B</span>EE</div>
       <div style={s.navLinks}>
-        <span style={s.navLink} onClick={() => navigate("/")}>DASHBOARD</span>
+        <span style={s.navLink} onClick={() => navigate("/dashboard")}>DASHBOARD</span>
         <span style={{ ...s.navLink, ...s.navActive }}>LOG BREW</span>
         <span style={s.navLink} onClick={() => navigate("/log-drink")}>LOG DRINK</span>
         <span style={s.navLink} onClick={() => navigate("/history")}>HISTORY</span>
@@ -66,6 +66,7 @@ export default function LogBrew() {
         rating: parseInt(form.rating) || null,
       });
       setResult(res.data);
+      setTimeout(() => navigate("/dashboard", { state: { refresh: true } }), 1000);
     } catch (err) {
       setError(err.response?.data?.error || "Something went wrong");
     } finally {
@@ -86,9 +87,14 @@ export default function LogBrew() {
           </div>
           <div style={s.successMsg}>{result.message}</div>
           <div style={s.successBtns}>
-            <button style={s.btnPrimary} onClick={() => navigate("/")}>Back to dashboard</button>
-            <button style={s.btnSecondary} onClick={() => { setResult(null); setForm({ bean_name: "", origin: "", roast_level: "light", grind_setting: "", dose_in: "", yield_out: "", brew_time: "", rating: 5, notes: "" }); }}>
-              Log another
+          <button style={s.btnPrimary} onClick={() => navigate("/dashboard", { state: { refresh: true } })}>
+            Back to dashboard
+            </button>            
+            <button style={s.btnSecondary} onClick={() => { 
+                setResult(null); 
+                setForm({ bean_name: "", origin: "", roast_level: "light", grind_setting: "", dose_in: "", yield_out: "", brew_time: "", rating: 0, notes: "" }); 
+                }}>
+                Log another
             </button>
           </div>
         </div>
